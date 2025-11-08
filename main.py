@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 
 from src.handlers.commands import commands_router
 from src.handlers.texts import texts_router
+from src.database.db import init_db
 
 
 load_dotenv()
@@ -29,4 +30,5 @@ async def main():
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+    init_db()
     asyncio.run(main())                                                                         
