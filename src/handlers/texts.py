@@ -1,9 +1,12 @@
 from aiogram import Router, types, F
-
-from aiogram.types import FSInputFile, InputMediaPhoto
+from aiogram.fsm.context import FSMContext
+from aiogram.types import FSInputFile, InputMediaPhoto, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from pathlib import Path
 
-from src.resources.messages import ButtonMessages, ServicesMessages, ContactsMessages
+from src.resources.messages import ButtonMessages, ServicesMessages, ContactsMessages, SubmitFormMessages, Messages
+from src.states.user_states import SubmitForm
+from src.keyboards.submit_form_kb import submit_form_kb
+from src.keyboards.main_kb import main_menu_kb
 
 
 MAIN_DIR = Path(__file__).parent.parent.parent
@@ -45,3 +48,61 @@ async def get_contacts(message: types.Message):
             username = "@anna_designer231", 
             email = "anna_design_logo@gmail.com")
     )
+
+@texts_router.message(F.text == ButtonMessages.submit_button)
+async def start_submit(message: types.Message, state: FSMContext):
+  
+    await message.reply(SubmitFormMessages.name_message, reply_markup=submit_form_kb())
+    await state.set_state(SubmitForm.name)
+
+@texts_router.message(F.text == ButtonMessages.cancel_action)
+async def cancel_action(message: types.Message, state: FSMContext):
+    current_state = await state.get_state()
+
+    if current_state is None:
+        return
+    await state.clear()
+    await message.answer(
+        SubmitFormMessages.cancel_message,
+        reply_markup= main_menu_kb()
+    )                  
+
+@texts_router.message(SubmitForm.name)
+async def process_name(message: types.Message, state: FSMContext):
+    if not message.text or not message.text.strip():
+        await message.reply(SubmitFormMessages.incorrect_name)
+        return
+    
+    await state.update_data(name=message.text.strip())
+    await message.reply(SubmitFormMessages.phone_message)
+    await state.set_state(SubmitForm.phone)
+
+@texts_router.message(SubmitForm.phone)
+async def process_phone(message: types.Message, state: FSMContext):
+    if not message.text:
+        await message.reply(SubmitFormMessages.incorrect_phone)
+        return                                                                  
+
+    await state.update_data(phone=message.text)
+    await message.reply(SubmitFormMessages.description_message) 
+    await state.set_state(SubmitForm.description)
+
+@texts_router.message(SubmitForm.description)
+async def process_description(message: types.Message, state: FSMContext):
+    if not message.text:
+        await message.reply(SubmitFormMessages.incorect_description)
+        return
+
+    await state.update_data(description=message.text)
+    data = await state.get_data()
+    print(data)
+    await message.reply(SubmitFormMessages.final_message, reply_markup=main_menu_kb())
+    await state.clear()
+
+# Должен быть последним, иначе перехватит всё
+@texts_router.message()
+async def fallback_handler(message: types.Message):
+    await message.answer(
+        Messages.start_message,
+        reply_markup=main_menu_kb()
+    )                                                        
