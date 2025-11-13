@@ -1,12 +1,15 @@
-from aiogram import Router, types, F
+from aiogram import Router, types, F, Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.types import FSInputFile, InputMediaPhoto, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from pathlib import Path
 
+from src.database.dao import add_user
 from src.resources.messages import ButtonMessages, ServicesMessages, ContactsMessages, SubmitFormMessages, Messages
 from src.states.user_states import SubmitForm
 from src.keyboards.submit_form_kb import submit_form_kb
 from src.keyboards.main_kb import main_menu_kb
+from src.utils.notifications import notify_admin
+
 
 
 MAIN_DIR = Path(__file__).parent.parent.parent
@@ -15,14 +18,14 @@ IMAGE_DIR = MAIN_DIR / "src" / "resources" / "images"
 
 texts_router = Router(name="texts")
 
-
+# -------- Услуги --------
 @texts_router.message(F.text == ButtonMessages.services_btn)
 async def get_services(message: types.Message):
     await message.reply(
         f'1. {ServicesMessages.logo}\n2. {ServicesMessages.style}\n3. {ServicesMessages.illustrations}'
     )
 
-
+# -------- Портфолио --------
 @texts_router.message(F.text == ButtonMessages.portfolio_btn)
 async def get_portfolio(message: types.Message):
     images_paths = {'Логотип для кофейни "Bean There"': 'bean_there_logo.webp', 
@@ -40,7 +43,7 @@ async def get_portfolio(message: types.Message):
     if media_group:
         await message.answer_media_group(media=media_group)
 
-
+# -------- Контакты --------
 @texts_router.message(F.text == ButtonMessages.contacts_btn)
 async def get_contacts(message: types.Message):
     await message.reply(
@@ -48,7 +51,7 @@ async def get_contacts(message: types.Message):
             username = "@anna_designer231", 
             email = "anna_design_logo@gmail.com")
     )
-
+# -------- Оставить заявку --------
 @texts_router.message(F.text == ButtonMessages.submit_button)
 async def start_submit(message: types.Message, state: FSMContext):
   
@@ -88,17 +91,24 @@ async def process_phone(message: types.Message, state: FSMContext):
     await state.set_state(SubmitForm.description)
 
 @texts_router.message(SubmitForm.description)
-async def process_description(message: types.Message, state: FSMContext):
+async def process_description(message: types.Message, state: FSMContext, bot: Bot):
     if not message.text:
-        await message.reply(SubmitFormMessages.incorect_description)
+        await message.reply(SubmitFormMessages.incorect_description)                                                                                        
         return
 
     await state.update_data(description=message.text)
     data = await state.get_data()
+    add_user(
+        user_id=message.from_user.id,
+        username=message.from_user.username,
+        name=data['name'],
+        phone=data['phone'],
+        description=data['description']
+    )
     print(data)
     await message.reply(SubmitFormMessages.final_message, reply_markup=main_menu_kb())
     await state.clear()
-
+    await notify_admin(bot,data, user_id=message.from_user.id, username=message.from_user.username)
 # Должен быть последним, иначе перехватит всё
 @texts_router.message()
 async def fallback_handler(message: types.Message):

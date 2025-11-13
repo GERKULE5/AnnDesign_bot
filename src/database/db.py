@@ -1,7 +1,7 @@
 import sqlite3
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent.parent.parent / 'src' / 'database' / 'bot_db.py'
+DB_PATH = Path(__file__).parent.parent.parent / 'src' / 'database' / 'bot_db'
 
 def get_db_conection():
     conn = sqlite3.connect(DB_PATH)

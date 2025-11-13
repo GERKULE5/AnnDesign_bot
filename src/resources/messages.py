@@ -26,3 +26,14 @@ class SubmitFormMessages:
     incorect_description = "❌ Пожалуйста, опишите задачу."
     final_message =  "🫶Спасибо! Ваша заявка принята. Я свяжусь с вами в ближайшее время."
     cancel_message = "❌ Действие отменено."
+
+class AdminNotifyMessages:
+    application = """
+    📩 Новая заявка!\n     
+    👤 Имя: {name}\n    
+    📞 Телефон: {phone}\n
+    💬 Описание: {description}        
+    """
+    type_to_user = "🖊 Написать пользователю"
+    
+
